@@ -1,0 +1,26 @@
+
+sudo: required
+git:
+  submodules: false
+services:
+- docker
+before_install:
+- git clone https://github.com/silverx2222/DualBootPatcher -b master DualBootPatcher/
+- cd DualBootPatcher && git submodule init && git submodule update && cd ../
+- docker pull silverx2222/dualbootpatcher:9.3.0-14-base
+- docker pull silverx2222/dualbootpatcher:9.3.0-14-mingw
+script:
+- mkdir $HOME/.android
+- mkdir -p ${TRAVIS_BUILD_DIR}/DualBootPatcher/builder/ && cd ${TRAVIS_BUILD_DIR}/DualBootPatcher/
+- "sudo docker run --rm -i -e USER_ID=$(id -u) -e GROUP_ID=$(id -g) -v \"$(pwd):/builder/DualBootPatcher:rw,z\"
+  -v \"${HOME}/.android:/builder/.android:rw,z\" silverx2222/dualbootpatcher:9.3.0-14-mingw
+  bash << EOF  \ncd ~/DualBootPatcher/builder\ncmake .. -DMBP_BUILD_TARGET=desktop -DMBP_PORTABLE=ON -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-mingw.cmake && make -j16 && cpack &&  chmod +x dllpack && ./dllpack\n"
+after_success: 
+deploy:
+  provider: releases
+  api_key:
+    secure: nnhnKjxDCAeFqAyCJjZvxcf3I0UIUoXadWfJmBcnWmQRwcOW3dh39KqQiIN0aD1NRyMkX8jW/Nq1fRpiiq5yKtDas+kfLE5C3vx4HEx8uYAwZCONMw6SxMbwCaIP+CxAD1UN8ZyzT+dBhpkGvKYxkGqAYbaoR0z/7pauudm41DVcRBeYsLJL9k6KDZGGD7tkxgtk937csanM+evzx3ZEpOoN9IO8ou/ugkRj7Tm10wJF1yQchoP1fzWyzW8ID+JUwn/gjz0xeC9/1/2x6mLPmaRctsWuRZHgSa/ReyXMMsu+V9al3kznsiGsg2uvF9sCsT8ohzTTBv0NKfIKlIS4MN2iCQYBoxwCzR3rMrHkrKntvSlki2antLI2qad6ZB0jJHTgACwITLkSfduaJYyf2ZAy1LAb7jsK1XPp2zNVOYRMXSGbBNypwLQX3cVDUuafOY31xpi2vvbFuxy8q2PG7Jdb78a7uQHR+fqLWG8VnPOPputdZzhPVydlJ7u4XiJme0PP6PyRLRZjb/1BUKmN0FtbRvqWyla/aGCbf0vx9ZLeFbZnn64SKmEzu10eqP02lJHtjvvHP6QGvhcN0Mq2nlmcc4wy0bLtrxOijcsSKMMKhXwK3GhcfmmHgc+SJgumkbUI9DmNGJH1k+RYpmx0G8ii1gnHi37xu0nJqvV7BBw=
+  file: "${TRAVIS_BUILD_DIR}/DualBootPatcher/builder/DualBootPatcher-9.3.0-win32.zip"
+  skip_cleanup: true
+  on:
+      repo: silverx2222/DualBootPatcher
